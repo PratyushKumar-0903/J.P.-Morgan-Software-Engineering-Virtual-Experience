@@ -1,0 +1,141 @@
+From 79fda3d1d5179cb05074166774a696a360b39b7b Mon Sep 17 00:00:00 2001
+From: Pratyush Kumar <prtyush0903@gmail.com>
+Date: Thu, 14 Apr 2022 12:19:28 +0530
+Subject: [PATCH] Create Patch File
+
+---
+ datafeed/server.py     |  2 +-
+ src/DataManipulator.ts | 31 +++++++++++++++++++++----------
+ src/DataStreamer.ts    |  2 +-
+ src/Graph.tsx          | 25 +++++++++++++++----------
+ 4 files changed, 38 insertions(+), 22 deletions(-)
+
+diff --git a/datafeed/server.py b/datafeed/server.py
+index 2ffad43..2450d2e 100644
+--- a/datafeed/server.py
++++ b/datafeed/server.py
+@@ -201,7 +201,7 @@ def get(req_handler, routes):
+                 req_handler.wfile.write(data)
+                 return
+ 
+-def run(routes, host = '0.0.0.0', port = 8080):
++def run(routes, host = '0.0.0.0', port = 8085):
+     """ Runs a class as a server whose methods have been decorated with
+         @route.
+     """
+diff --git a/src/DataManipulator.ts b/src/DataManipulator.ts
+index f6b15ff..4e5024d 100644
+--- a/src/DataManipulator.ts
++++ b/src/DataManipulator.ts
+@@ -1,20 +1,31 @@
+ import { ServerRespond } from './DataStreamer';
+ 
+ export interface Row {
+-  stock: string,
+-  top_ask_price: number,
++  price_abc: number,
++  price_def: number,
++  ratio: number,
+   timestamp: Date,
++  upper_bound: number,
++  lower_bound: number,
++  trigger_alert: number | undefined,
+ }
+ 
+ 
+ export class DataManipulator {
+-  static generateRow(serverResponds: ServerRespond[]): Row[] {
+-    return serverResponds.map((el: any) => {
+-      return {
+-        stock: el.stock,
+-        top_ask_price: el.top_ask && el.top_ask.price || 0,
+-        timestamp: el.timestamp,
+-      };
+-    })
++  static generateRow(serverRespond: ServerRespond[]): Row {
++    const priceABC = (serverRespond[0].top_ask.price + serverRespond[0].top_bid.price) / 2;
++    const priceDEF = (serverRespond[1].top_ask.price + serverRespond[1].top_bid.price) / 2;
++    const ratio = priceABC / priceDEF;
++    const upperBound = 1 + 0.05;
++    const lowerBound = 1 - 0.05;
++    return {
++      price_abc: priceABC,
++      price_def: priceDEF,
++      ratio,
++      timestamp: serverRespond[0].timestamp > serverRespond[1].timestamp ? serverRespond[0].timestamp : serverRespond[1].timestamp,
++      upper_bound: upperBound,
++      lower_bound: lowerBound,
++      trigger_alert: (ratio > upperBound || ratio < lowerBound) ? ratio : undefined,
++    };  
+   }
+ }
+diff --git a/src/DataStreamer.ts b/src/DataStreamer.ts
+index 9d9eca7..b9e8319 100644
+--- a/src/DataStreamer.ts
++++ b/src/DataStreamer.ts
+@@ -10,7 +10,7 @@ export interface ServerRespond {
+ }
+ 
+ class DataStreamer {
+-  static API_URL: string = 'http://localhost:8080/query?id=1';
++  static API_URL: string = 'http://localhost:8085/query?id=1';
+ 
+   static getData(callback: (data: ServerRespond[]) => void): void {
+     const request = new XMLHttpRequest();
+diff --git a/src/Graph.tsx b/src/Graph.tsx
+index 58fb997..e278dc0 100644
+--- a/src/Graph.tsx
++++ b/src/Graph.tsx
+@@ -23,10 +23,13 @@ class Graph extends Component<IProps, {}> {
+     const elem = document.getElementsByTagName('perspective-viewer')[0] as unknown as PerspectiveViewerElement;
+ 
+     const schema = {
+-      stock: 'string',
+-      top_ask_price: 'float',
+-      top_bid_price: 'float',
++      price_abc: 'float',
++      price_def: 'float',
++      ratio: 'float',
+       timestamp: 'date',
++      upper_bound: 'float',
++      lower_bound: 'float',
++      trigger_alert: 'float',
+     };
+ 
+     if (window.perspective && window.perspective.worker()) {
+@@ -36,23 +39,25 @@ class Graph extends Component<IProps, {}> {
+       // Load the `table` in the `<perspective-viewer>` DOM reference.
+       elem.load(this.table);
+       elem.setAttribute('view', 'y_line');
+-      elem.setAttribute('column-pivots', '["stock"]');
+       elem.setAttribute('row-pivots', '["timestamp"]');
+-      elem.setAttribute('columns', '["top_ask_price"]');
++      elem.setAttribute('columns', '["ratio", "lower_bound", "upper_bound", "trigger_alert"]');
+       elem.setAttribute('aggregates', JSON.stringify({
+-        stock: 'distinctcount',
+-        top_ask_price: 'avg',
+-        top_bid_price: 'avg',
++        price_abc: 'avg',
++        price_def: 'avg',
++        ratio: 'avg',
+         timestamp: 'distinct count',
++        upper_bound: 'avg',
++        lower_bound: 'avg',
++        trigger_alert: 'avg',
+       }));
+     }
+   }
+ 
+   componentDidUpdate() {
+     if (this.table) {
+-      this.table.update(
++      this.table.update([
+         DataManipulator.generateRow(this.props.data),
+-      );
++      ]);
+     }
+   }
+ }
+-- 
+2.35.1.windows.2
+
