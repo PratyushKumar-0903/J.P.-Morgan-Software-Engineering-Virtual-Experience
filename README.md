@@ -26,4 +26,4 @@ This repository contains all the submitted patch files of the various tasks assi
 - `Contrubuting to the Open Source Community`
 ---
 #### My Certificate of Completion
-![New](https://github.com/PratyushKumar-0903/JP-Morgan-Virtual-Internship-2022/blob/master/Certificate.png)
+<a href="https://forage-uploads-prod.s3.amazonaws.com/completion-certificates/J.P.%20Morgan/R5iK7HMxJGBgaSbvk_J.P.%20Morgan_FYquW8LGzsM8QppmQ_1649919700864_completion_certificate.pdf"><p align= "center"><img src="https://github.com/PratyushKumar-0903/JP-Morgan-Virtual-Internship-2022/blob/master/Certificate.png"></p></a>
